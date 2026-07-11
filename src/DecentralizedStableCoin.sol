@@ -1,25 +1,3 @@
-// Layout of Contract:
-// version
-// imports
-// errors
-// interfaces, libraries, contracts
-// Type declarations
-// State variables
-// Events
-// Modifiers
-// Functions
-
-// Layout of Functions:
-// constructor
-// receive function (if exists)
-// fallback function (if exists)
-// external
-// public
-// internal
-// private
-// internal & private view & pure functions
-// external & public view & pure functions
-
 //SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.20;
@@ -36,14 +14,14 @@ import {Ownable} from "@openzeppelin-contracts/contracts/access/Ownable.sol";
  */
 contract DecentralizedStableCoin is ERC20Burnable, Ownable {
     ////////////////////////////////////////
-    //Errors                              //
+    // Errors                             //
     ////////////////////////////////////////
     error DecentralizedStableCoin__AddressIsZero();
     error DecentralizedStableCoin__AmountIsZero();
     error DecentralizedStableCoin__BurnAmountExceedsBalance();
 
     ////////////////////////////////////////
-    //functions                           //
+    // Functions                          //
     ////////////////////////////////////////
     constructor(address _owner) ERC20("DecentralizedStableCoin", "DSC") Ownable(_owner) {}
 
@@ -59,5 +37,19 @@ contract DecentralizedStableCoin is ERC20Burnable, Ownable {
         _mint(_to, _amount);
 
         return true;
+    }
+
+    function burn(uint256 _amount) public override onlyOwner {
+        if (_amount == 0) {
+            revert DecentralizedStableCoin__AmountIsZero();
+        }
+
+        uint256 balance = balanceOf(msg.sender);
+
+        if (balance < _amount) {
+            revert DecentralizedStableCoin__BurnAmountExceedsBalance();
+        }
+
+        super.burn(_amount);
     }
 }
