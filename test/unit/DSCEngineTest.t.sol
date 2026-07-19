@@ -34,4 +34,10 @@ contract DeployDSCTest is Test {
         uint256 actualAmount = engine.getUsdValue(wEth, ethQty);
         assertEq(expectedAmount, actualAmount);
     }
+
+    function test__OfDepositCollateralAmountIsZeroThenRevert() public {
+        vm.prank(alice);
+        vm.expectRevert(DSCEngine.DSCEngine__InvalidAmount.selector);
+        engine.depositCollateral(wEth, 0);
+    }
 }
