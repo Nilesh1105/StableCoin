@@ -90,8 +90,25 @@ contract DSCEngine {
      * @param _collateralTokenAddress is the address of the token which he want to deposit as a collateral.
      * @param _collateralAmount is the collateral amount.
      */
-    function depositCollateral(address _collateralTokenAddress, uint256 _collateralAmount)
+
+    function depositCollateralAndMintDsc(address _collateralTokenAddress, uint256 _collateralAmount, _dscAmountToMint)
         external
+    {
+        depositCollateral(_collateralTokenAddress, _collateralAmount);
+        mintDsc(_dscAmountToMint);
+    }
+
+    ////////////////////////////////////////
+    //public functions                    //
+    ////////////////////////////////////////
+    /**
+     * With the help of this function, a user is able to deposit the collateral & mint DSC in a single transection.
+     * @param _collateralTokenAddress is the address of the token which he want to deposit as a collateral.
+     * @param _collateralAmount is the collateral amount.
+     * @param _dscAmountToMint is used to enter the amount to mint DSC.
+     */
+    function depositCollateral(address _collateralTokenAddress, uint256 _collateralAmount)
+        public
         checkAddressIsValid(_collateralTokenAddress)
         checkAmountIsValid(_collateralAmount)
     {
@@ -115,7 +132,7 @@ contract DSCEngine {
      * @param _dscAmountToMint is used to enter the amount to mint DSC.
      * @notice User always must have more collateral value than the minimum threshold.
      */
-    function mintDsc(uint256 _dscAmountToMint) external checkAmountIsValid(_dscAmountToMint) {
+    function mintDsc(uint256 _dscAmountToMint) public checkAmountIsValid(_dscAmountToMint) {
         s_dscMinted[msg.sender] += _dscAmountToMint;
 
         _revertIfHealthFactorIsBroken(msg.sender);
@@ -134,7 +151,7 @@ contract DSCEngine {
      * Minted DSC exceeds the minimum threshold, then we will revert.
      * @param _user is the address of the the user.
      */
-    function _revertIfHealthFactorIsBroken(address _user) private {
+    function _revertIfHealthFactorIsBroken(address _user) private view {
         uint256 userHealthFactor = _healthFactor(_user);
         if (userHealthFactor < MIN_HEALTH_FACTOR) {
             revert DSCEngine__BreaksHealthFactor(userHealthFactor);
@@ -186,7 +203,7 @@ contract DSCEngine {
      * @return totalCollateralValueInUsd is the value of the all of the deposited collateral in USD.
      */
     function getAccountCollateralValue(address _user) public view returns (uint256 totalCollateralValueInUsd) {
-        for(uint256 i = 0; i < s_collateralTokens.length; i++) {
+        for (uint256 i = 0; i < s_collateralTokens.length; i++) {
             address token = s_collateralTokens[i];
             uint256 amount = s_collateralDeposited[_user][token];
             totalCollateralValueInUsd += getUsdValue(token, amount);
@@ -202,7 +219,7 @@ contract DSCEngine {
      */
     function getUsdValue(address _token, uint256 _amount) public view returns (uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_tokenToPriceFeed[_token]);
-        (, int256 price, , ,) = priceFeed.latestRoundData();
-        return (uint256(price) * ADDITIONAL_FEED_PRECISION) / PRECISION;
+        (, int256 price,,,) = priceFeed.latestRoundData();
+        return ((uint256(price) * ADDITIONAL_FEED_PRECISION) * _amount) / PRECISION;
     }
 }
