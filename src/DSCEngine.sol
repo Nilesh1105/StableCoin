@@ -101,6 +101,22 @@ contract DSCEngine {
         mintDsc(_dscAmountToMint);
     }
 
+    /**
+     * @notice Burns DSC and redeem collateral in a single transaction.
+     * @notice Burning DSC before redeeming the collateral improves users 'healthFactor' which makes redemption of minted DSC easy.
+     * @param _dscAmountToBurn is the amount of DSC which we want to burn.
+     * @param _collateralTokenAddress Address of the collateral token.
+     * @param _redemptionAmount Amount of the collateral token.
+     */
+    function burnDscAndRedeemCollateral(
+        uint256 _dscAmountToBurn,
+        address _collateralTokenAddress,
+        uint256 _redemptionAmount
+    ) external {
+        burnDsc(_dscAmountToBurn);
+        redeemCollateral(_collateralTokenAddress, _redemptionAmount);
+    }
+
     ////////////////////////////////////////
     //public functions                    //
     ////////////////////////////////////////
@@ -148,18 +164,18 @@ contract DSCEngine {
     /**
      * This function is used to redeem the collateral which is deposited by the user.
      * @notice while doing redemption, a user must need to have his 'healthFactor' more than our requirement
-     * @param _collateraledTokenAddress is the address of the token which we want to redeem.
+     * @param _collateralTokenAddress is the address of the token which we want to redeem.
      * @param _redemptionAmount is the amount of the token.
      */
-    function redeemCollateral(address _collateraledTokenAddress, uint256 _redemptionAmount)
-        external
-        checkAddressIsValid(_collateraledTokenAddress)
+    function redeemCollateral(address _collateralTokenAddress, uint256 _redemptionAmount)
+        public
+        checkAddressIsValid(_collateralTokenAddress)
         checkAmountIsValid(_redemptionAmount)
     {
-        s_collateralDeposited[msg.sender][_collateraledTokenAddress] -= _redemptionAmount;
-        emit CollateralRedeemed(msg.sender, _collateraledTokenAddress, _redemptionAmount);
+        s_collateralDeposited[msg.sender][_collateralTokenAddress] -= _redemptionAmount;
+        emit CollateralRedeemed(msg.sender, _collateralTokenAddress, _redemptionAmount);
 
-        bool success = IERC20(_collateraledTokenAddress).transfer(msg.sender, _redemptionAmount);
+        bool success = IERC20(_collateralTokenAddress).transfer(msg.sender, _redemptionAmount);
         if (!success) {
             revert DSCEngine__TokenTransferFailed();
         }
@@ -172,15 +188,15 @@ contract DSCEngine {
      * The caller must approve this contract to spend the DSC first.
      * @param _dscAmountToBurn Amount of DSC to burn.
      */
-    function burnDSC(uint256 _dscAmountToBurn) external checkAmountIsValid(_dscAmountToBurn) {
+    function burnDsc(uint256 _dscAmountToBurn) public checkAmountIsValid(_dscAmountToBurn) {
         s_dscMinted[msg.sender] -= _dscAmountToBurn;
 
-        bool success = IERC20(i_dsc).transferFrom(msg.sender, address(this), _amountToBurn);
+        bool success = IERC20(i_dsc).transferFrom(msg.sender, address(this), _dscAmountToBurn);
         if (!success) {
             revert DSCEngine__TokenTransferFailed();
         }
 
-        i_dsc.burn(_amountToBurn);
+        i_dsc.burn(_dscAmountToBurn);
     }
 
     ////////////////////////////////////////
