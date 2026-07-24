@@ -48,6 +48,7 @@ contract DSCEngine {
     //event                               //
     ////////////////////////////////////////
     event CollateralDeposited(address indexed user, address indexed token, uint256 collateralAmount);
+    event CollateralRedeemed(address indexed user, address indexed token, uint256 collateralRedeemed);
 
     ////////////////////////////////////////
     //modifier                            //
@@ -91,9 +92,11 @@ contract DSCEngine {
      * @param _collateralAmount is the collateral amount.
      */
 
-    function depositCollateralAndMintDsc(address _collateralTokenAddress, uint256 _collateralAmount, _dscAmountToMint)
-        external
-    {
+    function depositCollateralAndMintDsc(
+        address _collateralTokenAddress,
+        uint256 _collateralAmount,
+        uint256 _dscAmountToMint
+    ) external {
         depositCollateral(_collateralTokenAddress, _collateralAmount);
         mintDsc(_dscAmountToMint);
     }
@@ -105,7 +108,6 @@ contract DSCEngine {
      * With the help of this function, a user is able to deposit the collateral & mint DSC in a single transection.
      * @param _collateralTokenAddress is the address of the token which he want to deposit as a collateral.
      * @param _collateralAmount is the collateral amount.
-     * @param _dscAmountToMint is used to enter the amount to mint DSC.
      */
     function depositCollateral(address _collateralTokenAddress, uint256 _collateralAmount)
         public
@@ -141,6 +143,28 @@ contract DSCEngine {
         if (!minted) {
             revert DSCEngine__DSCMintFailed();
         }
+    }
+
+    /**
+     * This function is used to redeem the collateral which is deposited by the user.
+     * @notice while doing redemption, a user must need to have his 'healthFactor' more than our requirement
+     * @param _collateraledTokenAddress is the address of the token which we want to redeem.
+     * @param _redemptionAmount is the amount of the token.
+     */
+    function redeemCollateral(address _collateraledTokenAddress, uint256 _redemptionAmount)
+        external
+        checkAddressIsValid(_collateraledTokenAddress)
+        checkAmountIsValid(_redemptionAmount)
+    {
+        s_collateralDeposited[msg.sender][_collateraledTokenAddress] -= _redemptionAmount;
+        emit CollateralRedeemed(msg.sender, _collateraledTokenAddress, _redemptionAmount);
+
+        bool success = IERC20(_collateraledTokenAddress).transfer(msg.sender, _redemptionAmount);
+        if (!success) {
+            revert DSCEngine__TokenTransferFailed();
+        }
+
+        _revertIfHealthFactorIsBroken(msg.sender);
     }
 
     ////////////////////////////////////////
