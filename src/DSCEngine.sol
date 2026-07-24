@@ -167,6 +167,22 @@ contract DSCEngine {
         _revertIfHealthFactorIsBroken(msg.sender);
     }
 
+    /**
+     * @notice Burns the specified amount of DSC from the caller.
+     * The caller must approve this contract to spend the DSC first.
+     * @param _dscAmountToBurn Amount of DSC to burn.
+     */
+    function burnDSC(uint256 _dscAmountToBurn) external checkAmountIsValid(_dscAmountToBurn) {
+        s_dscMinted[msg.sender] -= _dscAmountToBurn;
+
+        bool success = IERC20(i_dsc).transferFrom(msg.sender, address(this), _amountToBurn);
+        if (!success) {
+            revert DSCEngine__TokenTransferFailed();
+        }
+
+        i_dsc.burn(_amountToBurn);
+    }
+
     ////////////////////////////////////////
     //private function                   //
     ////////////////////////////////////////
